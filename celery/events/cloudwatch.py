@@ -214,7 +214,7 @@ class CursesCloudWatchMonitor(object):
 
     def on_failure(self, event):
         if os.getenv('CLOUDWATCH_ENABLE_FAILED_TASK_LOG', '0') == '1':
-            print_msg('Task {} failed\n'.format(event['uuid']))
+            print_msg('Task {} failed\n'.format(event.get('uuid', '')))
             task = self.get_task(event)
             task_name = event.get('name', task.name)
             if not task_name:
@@ -226,7 +226,7 @@ class CursesCloudWatchMonitor(object):
 
     def on_start(self, event):
         if os.getenv('CLOUDWATCH_ENABLE_START_TASK_LOG', '0') == '1':
-            print_msg('Task {} started\n'.format(event['uuid']))
+            print_msg('Task {} started\n'.format(event.get('uuid', '')))
             task = self.get_task(event)
             task_name = event.get('name', task.name)
             if not task_name:
@@ -238,7 +238,7 @@ class CursesCloudWatchMonitor(object):
 
     def on_retry(self, event):
         if os.getenv('CLOUDWATCH_ENABLE_RETRY_TASK_LOG', '0') == '1':
-            print_msg('Task {} retried\n'.format(event['uuid']))
+            print_msg('Task {} retried\n'.format(event.get('uuid', '')))
             task = self.get_task(event)
             task_name = event.get('name', task.name)
             if not task_name:
@@ -250,7 +250,7 @@ class CursesCloudWatchMonitor(object):
 
     def on_receipt(self, event):
         if os.getenv('CLOUDWATCH_ENABLE_RECEIPT_TASK_LOG', '0') == '1':
-            print_msg('Task {} received\n'.format(event['uuid']))
+            print_msg('Task {} received\n'.format(event.get('uuid', '')))
             task = self.get_task(event)
             task_name = event.get('name', task.name)
             if not task_name:
@@ -262,7 +262,7 @@ class CursesCloudWatchMonitor(object):
 
     def on_success(self, event):
         if os.getenv('CLOUDWATCH_ENABLE_SUCCESS_TASK_LOG', '0') == '1':
-            print_msg('Task {} succeeded\n'.format(event['uuid']))
+            print_msg('Task {} succeeded\n'.format(event.get('uuid', '')))
             task = self.get_task(event)
             task_name = event.get('name', task.name)
             if not task_name:
