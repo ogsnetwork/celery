@@ -19,7 +19,14 @@ TASK_RETRIED = 'task-retried'
 WORKER_LOST = 'worker-offline'
 TASK_RECEIVED = 'task-received'
 TASK_SUCCEEDED = 'task-succeeded'
-TASK_STATUSES = [TASK_FAILED, TASK_RETRIED, TASK_RECEIVED, TASK_SUCCEEDED]
+TASK_STATUSES = [
+    TASK_FAILED,
+    TASK_RETRIED,
+    TASK_RECEIVED,
+    TASK_SUCCEEDED,
+    TASK_STARTED,
+]
+WORKER_STATUSES = [WORKER_LOST]
 CLOUDWATCH_NAMESPACE = '{}-{}'.format(
     os.getenv('ENVIRONMENT_NAME', 'dev').lower(),
     os.getenv('CELERY_CLOUDWATCH_NAMESPACE', 'celery').lower()
@@ -104,7 +111,7 @@ class CursesCloudWatchMonitor(object):
     def get_task_dimensions(self, task, event, reason=None):
         dimensions = {
             'hostname': task.worker.hostname,
-            'task_name': task.name,
+            'task_name': task.name or event.get('name', ''),
             'state': task.state,
             'timestamp': task.timestamp,
             'type': event['type'],
@@ -138,9 +145,7 @@ class CursesCloudWatchMonitor(object):
             'processed': worker.processed,
             'active': worker.active,
             'id': worker.id,
-            'type': event.get('type', reason),
-            'task_name': '',
-            'task_id': ''
+            'type': event.get('type', reason)
         }
         return dimensions
 
@@ -152,7 +157,7 @@ class CursesCloudWatchMonitor(object):
             if len(CLOUDWATCH_TASKS_LIST) > 0:
                 return obj.name in CLOUDWATCH_TASKS_LIST
             return True
-        return CLOUDWATCH_LOG_WORKER_FAILURE
+        return CLOUDWATCH_LOG_WORKER_FAILURE and task_status in WORKER_STATUSES
 
     def record_metric(self, obj, event, dim_func, task_status):
 
@@ -211,55 +216,60 @@ class CursesCloudWatchMonitor(object):
         if os.getenv('CLOUDWATCH_ENABLE_FAILED_TASK_LOG', '0') == '1':
             print_msg('Task {} failed\n'.format(event['uuid']))
             task = self.get_task(event)
-            if not task.name:
+            task_name = event.get('name', task.name)
+            if not task_name:
                 return
 
             self.record_metric(
-                task, event, self.get_task_dimensions, event['type'])
+                task, event, self.get_task_dimensions, TASK_FAILED)
         return
 
     def on_start(self, event):
         if os.getenv('CLOUDWATCH_ENABLE_START_TASK_LOG', '0') == '1':
             print_msg('Task {} started\n'.format(event['uuid']))
             task = self.get_task(event)
-            if not task.name:
+            task_name = event.get('name', task.name)
+            if not task_name:
                 return
 
             self.record_metric(
-                task, event, self.get_task_dimensions, event['type'])
+                task, event, self.get_task_dimensions, TASK_STARTED)
         return
 
     def on_retry(self, event):
         if os.getenv('CLOUDWATCH_ENABLE_RETRY_TASK_LOG', '0') == '1':
             print_msg('Task {} retried\n'.format(event['uuid']))
             task = self.get_task(event)
-            if not task.name:
+            task_name = event.get('name', task.name)
+            if not task_name:
                 return
 
             self.record_metric(
-                task, event, self.get_task_dimensions, event['type'])
+                task, event, self.get_task_dimensions, TASK_RETRIED)
         return
 
     def on_receipt(self, event):
         if os.getenv('CLOUDWATCH_ENABLE_RECEIPT_TASK_LOG', '0') == '1':
             print_msg('Task {} received\n'.format(event['uuid']))
             task = self.get_task(event)
-            if not task.name:
+            task_name = event.get('name', task.name)
+            if not task_name:
                 return
 
             self.record_metric(
-                task, event, self.get_task_dimensions, event['type'])
+                task, event, self.get_task_dimensions, TASK_RECEIVED)
         return
 
     def on_success(self, event):
         if os.getenv('CLOUDWATCH_ENABLE_SUCCESS_TASK_LOG', '0') == '1':
             print_msg('Task {} succeeded\n'.format(event['uuid']))
             task = self.get_task(event)
-            if not task.name:
+            task_name = event.get('name', task.name)
+            if not task_name:
                 return
 
             self.record_metric(
-                task, event, self.get_task_dimensions, event['type'])
+                task, event, self.get_task_dimensions, TASK_SUCCEEDED)
         return
 
     def on_worker_loss(self, event):
@@ -271,7 +281,7 @@ class CursesCloudWatchMonitor(object):
                 return
 
             self.record_metric(
-                worker, event, self.get_worker_dimensions, event['type'])
+                worker, event, self.get_worker_dimensions, WORKER_LOST)
         return
 
 
