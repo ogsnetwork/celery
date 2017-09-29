@@ -206,11 +206,24 @@ class CursesCloudWatchMonitor(object):
                         log_stream,
                         events
                     )
-                except Exception as e:
-                    sys.stderr.write(
-                        'Failed to record worker event: {} - {}. Error: '
-                        '{}\n'.format(CLOUDWATCH_NAMESPACE, log_stream, e))
-                    pass
+                except ResourceNotFoundException as e:
+                    if MISSING_LOG_GROUP in e.body.get('message', ''):
+                        client.create_log_group(CLOUDWATCH_NAMESPACE)
+                    elif MISSING_LOG_STREAM in e.body.get('message', ''):
+                        client.create_log_stream(
+                            CLOUDWATCH_NAMESPACE, log_stream)
+
+                    try:
+                        _record(
+                            CLOUDWATCH_NAMESPACE,
+                            log_stream,
+                            events
+                        )
+                    except Exception as e:
+                        sys.stderr.write(
+                            'Failed to record worker event: {} - {}. Error: '
+                            '{}\n'.format(CLOUDWATCH_NAMESPACE, log_stream, e))
+                        pass
 
     def on_failure(self, event):
         if os.getenv('CLOUDWATCH_ENABLE_FAILED_TASK_LOG', '0') == '1':
