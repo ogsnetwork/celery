@@ -131,11 +131,21 @@ class CursesCloudWatchMonitor(object):
             l_args = event.get('args', '[None]')
             l_args = ast.literal_eval(l_args) if isinstance(
                 l_args, basestring) else l_args
+            l_kwargs = event.get('kwargs', '{}')
+            l_kwargs = ast.literal_eval(l_kwargs) if isinstance(
+                l_kwargs, basestring) else l_kwargs
+
             if len(l_args) > 0:
                 l_args = l_args[0]
+
             dimensions.update({
                 'job_id': l_args
             })
+
+            if l_kwargs and 'ogs_request_id' in l_kwargs:
+                dimensions.update({
+                    'ogs_request_id': l_kwargs.get('ogs_request_id', '')
+                })
 
         return dimensions
 
@@ -172,10 +182,8 @@ class CursesCloudWatchMonitor(object):
 
         if self.monitor_enabled_for_obj(obj, task_status):
             dimensions = dim_func(obj, event, reason=task_status)
-            task_name = dimensions.get('task_name', '')
-            log_stream = '{}-{}{}'.format(
-                dimensions['type'], dimensions['hostname'],
-                '-{}'.format(task_name) if task_name else '')
+            task_name = dimensions.get('task_name', dimensions.get('type'))
+            log_stream = '{}'.format(task_name)
             events = [{
                 'timestamp': int(time.time() * 1000),
                 'message': json.dumps({
