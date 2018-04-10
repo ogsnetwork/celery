@@ -350,7 +350,7 @@ class Request(object):
         task_accepted(self)
         if not self.task.acks_late:
             self.acknowledge()
-        self.send_event('task-started')
+        self.send_event('task-started', name=self.name)
         if _does_debug:
             debug('Task accepted: %s[%s] pid:%r', self.name, self.id, pid)
         if self._terminate_on_ack is not None:
@@ -390,7 +390,8 @@ class Request(object):
             now = nowfun()
             runtime = self.time_start and (now - self.time_start) or 0
             self.send_event('task-succeeded',
-                            result=safe_repr(ret_value), runtime=runtime)
+                            result=safe_repr(ret_value), runtime=runtime,
+                            name=self.name)
 
         if _does_info:
             now = now or nowfun()
@@ -407,7 +408,7 @@ class Request(object):
 
         self.send_event('task-retried',
                         exception=safe_repr(exc_info.exception.exc),
-                        traceback=safe_str(exc_info.traceback))
+                        traceback=safe_str(exc_info.traceback), name=self.name)
 
         if _does_info:
             info(self.retry_msg.strip(),
@@ -487,6 +488,7 @@ class Request(object):
         if send_failed_event:
             self.send_event(
                 'task-failed', exception=exception, traceback=traceback,
+                name=self.name
             )
 
         context = {

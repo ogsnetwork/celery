@@ -29,6 +29,7 @@ from celery.bin.base import Command, Option, Extensions
 from celery.bin.amqp import amqp
 from celery.bin.beat import beat
 from celery.bin.events import events
+from celery.bin.cloudwatch_monitor import cloudwatch_monitor
 from celery.bin.graph import graph
 from celery.bin.worker import worker
 
@@ -51,7 +52,9 @@ Migrating task {state.count}/{state.strtotal}: \
 DEBUG = os.environ.get('C_DEBUG', False)
 
 command_classes = [
-    ('Main', ['worker', 'events', 'beat', 'shell', 'multi', 'amqp'], 'green'),
+    ('Main',
+        ['worker', 'events', 'beat', 'shell',
+         'multi', 'amqp', 'cloudwatch_monitor'], 'green'),
     ('Remote Control', ['status', 'inspect', 'control'], 'blue'),
     ('Utils', ['purge', 'list', 'migrate', 'call', 'result', 'report'], None),
 ]
@@ -669,6 +672,7 @@ class CeleryCommand(Command):
         'shell': shell,
         'status': status,
         'worker': worker,
+        'cloudwatch_monitor': cloudwatch_monitor
 
     }
     enable_config_from_cmdline = True
